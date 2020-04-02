@@ -2,17 +2,21 @@
 # coding: utf-8
 import pandas as pd
 
-def load_xlsx():
-    lotto = 'a94c65f6-7123-11ea-835d-1868b10e31b6'
+def load_xlsx(file_name):
     path = './Source/'
     file_extension = '.xlsx' 
 
-    file = path + lotto + file_extension
+    file = path + file_name + file_extension
 
     df = pd.read_excel(file, index=True)
-    data_lotto = df[6:]
+    
+    print(file_name.find("draw_results"))
+    
+    if file_name.find("draw_results") < 5:
+        df = df[6:]
 
-    data_lotto = data_lotto.rename(columns={'Lotto Powerball Winning Number Results': 'Draw',
+
+    df = df.rename(columns={'Lotto Powerball Winning Number Results': 'Draw',
                                             'Unnamed: 1': 'Date',
                                             'Unnamed: 2': '1',
                                             'Unnamed: 3': '2',
@@ -24,8 +28,9 @@ def load_xlsx():
                                             'Unnamed: 9': 'Bonus 2nd',
                                             'Unnamed: 10': 'Powerball'})
 
-    data_lotto = data_lotto.sort_values(by=['Draw'])
-    data_lotto = data_lotto.reset_index(drop=True)
-    data_lotto[list("123456")] = data_lotto[list("123456")].astype(int)
-    data_lotto['Date'] = pd.to_datetime(data_lotto['Date'], infer_datetime_format=True)
-    return data_lotto
+    df = df.sort_values(by=['Draw'])
+    df = df.reset_index(drop=True)
+    df[["Draw","1","2","3","4","5","6","Bonus"]] = df[["Draw","1","2","3","4","5","6","Bonus"]].astype(int)
+    df['Date'] = pd.to_datetime(df['Date'], infer_datetime_format=True)
+
+    return df

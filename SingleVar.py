@@ -3,8 +3,8 @@
 
 # https://www.tensorflow.org/tutorials/structured_data/time_series
 
+import sys, getopt
 import tensorflow as tf
-
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,13 +15,13 @@ from datetime import datetime
 
 
 
+
+## Input arguments
 # ## Parameters
 
 mode_training = True
 mode_prediction = False
-
 ver = '003'
-
 univariate = True
 
 # Add this feature as parameter
@@ -33,6 +33,53 @@ balls = ['1', '2', '3', '4', '5', '6', 'Bonus', 'Bonus 2nd', 'Powerball']
 # For Multi-variate
 features_considered = [ '1', '2', '3', '4', '5', '6']
 
+
+# print('ARGV      :', sys.argv[1:])
+
+options, remainder = getopt.getopt(sys.argv[1:], 'p:s:t:u:v', [
+    'univariate=',
+    'sort_balls=',
+    'mode_training=',
+    'mode_prediction='
+    'ver='])
+
+# print ('OPTIONS   :', options)
+
+def str2bool(s):
+    answer = []
+    if s.lower() in ['true', '1', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh']:
+        answer = bool(1)
+    elif s.lower() in ['false', '0', 'n', 'no', 'nein', 'nope', 'certainly', 'nah']:
+        # answer = not(s.lower() in ['false', '0', 'n', 'no', 'nein', 'nope', 'certainly', 'nah'])
+        answer = bool(0)
+    else:
+        print("\nI don't understand what you mean")
+    return answer
+
+
+for opt, arg in options:
+    if opt in ('-u', '--univariate'):
+        univariate = str2bool(arg)
+    elif opt in ('-s', '--sorted'):
+        sort_balls = str2bool(arg)
+    elif opt in ('-t', '--training'):
+        mode_training = str2bool(arg)
+    elif opt in ('-p', '--prediction'):
+        mode_prediction = str2bool(arg)
+    elif opt in ('-v', '--version'):
+        ver = arg
+
+print('\n\n============================')
+print('UNIVARIATE      (-u):', univariate)
+print('SORTED DATA     (-s):', sort_balls)
+print('TRAINING MODE   (-t):', mode_training)
+print('PREDICTION MODE (-p):', mode_prediction)
+print('VERSION         (-v):', ver)
+print('============================\n\n')
+
+# exit()
+
+# ## Code
 print('\n\n Running: ',
       '\n\t Univariate', univariate,
       '\n\t Data sorted:', sort_balls,)

@@ -160,10 +160,10 @@ if univariate:
                 sorted_data = 'sorted'
 
             # dt_string = now.strftime("%Y-%m-%d")
-            simple_lstm_model.save('./Models/' + Ball_to_predict + ver + sorted_data)
+            simple_lstm_model.save('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data +'_' + 'V' + ver)
 
         else:
-            simple_lstm_model = tf.saved_model.load('./Models/' + Ball_to_predict + ver)
+            simple_lstm_model = tf.saved_model.load('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data +'_' + 'V' + ver)
 
         ## Prediction
         if mode_prediction:

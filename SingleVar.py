@@ -24,6 +24,7 @@ mode_prediction = False
 ver = '003'
 univariate = True
 
+
 # Add this feature as parameter
 sort_balls = False
 
@@ -84,8 +85,19 @@ print('\n\n Running: ',
       '\n\t Univariate', univariate,
       '\n\t Data sorted:', sort_balls,)
 
-# ## Functions
 
+# ## Model naming
+sorted_data = 'unsorted'
+if sort_balls:
+    sorted_data = 'sorted'
+
+model_variables_name = 'multivariate'
+if univariate:
+    model_variables_name = 'univariate'
+
+simple_lstm_model = []
+
+# ## Functions
 def univariate_data(dataset, start_index, end_index, history_size, target_size):
     data = []
     labels = []
@@ -123,8 +135,8 @@ if sort_balls:
 
 # Drops the last Draw result for test only
 # df.loc[df['Draw'] == 1947]
-print('Dropping Draw 1947 for testing. \nREMOVE IT FOR PRODUCTION!!')
-df = df[df['Draw'] != 1947]
+# print('Dropping Draw 1947 for testing. \nREMOVE IT FOR PRODUCTION!!')
+# df = df[df['Draw'] != 1947]
 
 # ## Ball to Predict
 print("Running univariate:", univariate)
@@ -202,31 +214,37 @@ if univariate:
 
             score = simple_lstm_model.evaluate(x_val_uni, y_val_uni, verbose=1)
 
-            sorted_data = 'unsorted'
-            if sort_balls:
-                sorted_data = 'sorted'
-
             # dt_string = now.strftime("%Y-%m-%d")
-            simple_lstm_model.save('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data +'_' + 'V' + ver)
+            simple_lstm_model.save('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' +'V' + ver)
 
-        else:
-            simple_lstm_model = tf.saved_model.load('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data +'_' + 'V' + ver)
 
         ## Prediction
         if mode_prediction:
 
+            if not simple_lstm_model:
+                simple_lstm_model = tf.saved_model.load('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' + 'V' + ver)
+
             last_result = np.reshape(
                 np.array(dft[Ball_to_predict].tail(8)),(8,1))
+            print('Last result', last_result)
+            # print('Min:',uni_data[:TRAIN_SPLIT].min(),'\nMax:',uni_data[:TRAIN_SPLIT].max())
+            sample_mean = dft[Ball_to_predict].mean()
+            sample_std = dft[Ball_to_predict].std()
+            last_result = (last_result - sample_mean) / sample_std
+            
 
-            last_result = ((last_result-uni_train_mean)/uni_train_std)
+            # uni_train_mean = uni_data[:TRAIN_SPLIT].mean()
+            # uni_train_std = uni_data[:TRAIN_SPLIT].std()
+            # uni_data = (uni_data - uni_train_mean) / uni_train_std
+            # last_result = ((last_result-uni_train_mean)/uni_train_std)
 
             last_result = tf.convert_to_tensor([last_result,last_result], dtype=np.float64, dtype_hint=None, name=None)
 
-            prediction = [prediction] + [simple_lstm_model.predict(last_result[:1]) * uni_train_std + uni_train_mean]
+            prediction = [prediction] + [simple_lstm_model.predict(last_result[:1]) * sample_std + sample_mean]
 
-            print('Prediction of ball', Ball_to_predict, ':', simple_lstm_model.predict(last_result[:1]) * uni_train_std + uni_train_mean)
+            print('Prediction of ball', Ball_to_predict, ':', simple_lstm_model.predict(last_result[:1]) * sample_std + sample_mean)
 
 if mode_prediction:
-    print('\n===========================================',
-          '\nPrediction:', prediction,
-          '\n===========================================')
+    print('\n=================================================',
+          '\nPrediction of draw ', df['Draw'].max(), ':', prediction,
+          '\n=================================================')

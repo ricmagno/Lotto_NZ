@@ -10,7 +10,7 @@ def load_data(file_name):
 
     df = pd.read_excel(file, index=True)
     
-    print(file_name.find("draw_results"))
+    # print(file_name.find("draw_results"))
     
     if file_name.find("draw_results") < 5:
         df = df[6:]

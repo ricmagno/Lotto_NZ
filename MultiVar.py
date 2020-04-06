@@ -5,6 +5,10 @@
 
 import sys, getopt
 import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import *
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +16,8 @@ import os
 import pandas as pd
 from datetime import datetime
 
-
+# Ignore warning messages for CPU Advanced Vector Extensions (AVX)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 
@@ -44,7 +49,6 @@ features_considered = [ '1', '2', '3', '4', '5', '6', 'Bonus', 'Powerball']
 
 
 # print('ARGV      :', sys.argv[1:])
-
 options, remainder = getopt.getopt(sys.argv[1:], 'p:s:t:u:v', [
     'univariate=',
     'sort_balls=',
@@ -87,12 +91,6 @@ print('VERSION         (-v):', ver)
 print('============================\n\n')
 
 # exit()
-
-# ## Code
-print('\n\n Running: ',
-      '\n\t Univariate', univariate,
-      '\n\t Data sorted:', sort_balls,)
-
 
 # ## Model naming
 sorted_data = 'unsorted'
@@ -149,7 +147,6 @@ def create_time_steps(length):
     return list(range(-length, 0))
 
 def clean_my_balls(df, features_considered):
-    print(features_considered)
     dft = df[features_considered]
     # if len(features_considered) > 1:
     for i in features_considered:
@@ -160,6 +157,37 @@ def clean_my_balls(df, features_considered):
         # dft = dft[dft[features_considered] != 0]
     return dft
 
+def create_model():
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.LSTM(8, input_shape=x_train_uni.shape[-2:]),
+        tf.keras.layers.Dense(1)])
+    model.compile(optimizer='adam', loss='mae')
+    model.summary()
+    return model
+
+def save_model(model, checkpoint_path):
+    checkpoint = tf.train.Checkpoint(optimizer=tf.optimizers.Adam(), model=simple_lstm_model)
+
+    print('Saving model in ', checkpoint)
+    model.save(checkpoint_path)
+
+    print('Saving weights in ', checkpoint)
+    model.save_weights( checkpoint_path.format(epoch=0))
+    # model.save_weights( checkpoint_path + '_weights.h5')
+
+    print('Saving model graph_def')
+    sess = tf.compat.v1.Session()
+    tf.io.write_graph(sess.graph_def, checkpoint_path, 'model.pbtxt')
+
+    return
+
+def load_model(checkpoint_path):
+    print('Loading model from ', checkpoint_path)
+    model = tf.keras.models.load_model( checkpoint_path )
+    print(model)
+    model.summary()
+    return model
+
 prediction = []
 
 # ## Data
@@ -167,21 +195,11 @@ prediction = []
 from load_data import load_data
 df = load_data('2020-04-01_draw_results')
 
-
 # sort_answer = input("Sort balls(True/False)?:")
 # sort_balls = bool(sort_answer)
 
 if sort_balls:
     df[['1','2','3','4','5','6']]=df[['1','2','3','4','5','6']].apply(np.sort,axis=1, raw=True, result_type='broadcast')
-
-# Drops the last Draw result for test only
-# df.loc[df['Draw'] == 1947]
-# print('Dropping Draw 1947 for testing. \nREMOVE IT FOR PRODUCTION!!')
-# df = df[df['Draw'] != 1947]
-
-# ## Ball to Predict
-print("Running univariate:", univariate)
-
 
 for Ball_to_predict in balls:
     if univariate:
@@ -189,28 +207,18 @@ for Ball_to_predict in balls:
 
         # replaced by clean_my_balls
         dft = clean_my_balls(df, features_considered)
-        # dft = df[features_considered]
-
-        # for i in features_considered:
-        #     dft = dft.dropna(subset=[i])
-        #     dft = dft[dft[i] != 0]
 
         ## Training
         if mode_training:
             uni_data = dft
             # print(uni_data.index)
-            uni_data.tail()
-
-            uni_data.plot(subplots=True)
-
+            # uni_data.tail()
+            # uni_data.plot(subplots=True)
             uni_data = uni_data.values
 
             TRAIN_SPLIT = int(len(dft.index)*split_percent)
-            # print( len(dft.index*.7),TRAIN_SPLIT)
 
             tf.random.set_seed(13)
-
-            print('Min:',uni_data[:TRAIN_SPLIT].min(),'\nMax:',uni_data[:TRAIN_SPLIT].max())
 
             uni_train_mean = uni_data[:TRAIN_SPLIT].mean()
             uni_train_std = uni_data[:TRAIN_SPLIT].std()
@@ -236,33 +244,42 @@ for Ball_to_predict in balls:
             val_univariate = tf.data.Dataset.from_tensor_slices((x_val_uni, y_val_uni))
             val_univariate = val_univariate.batch(BATCH_SIZE).repeat()
 
-            simple_lstm_model = tf.keras.models.Sequential([
-                tf.keras.layers.LSTM(8, input_shape=x_train_uni.shape[-2:]),
-                tf.keras.layers.Dense(1)])
-
-            simple_lstm_model.compile(optimizer='adam', loss='mae')
-
-            # for x, y in val_univariate.take(1):
-            #     print(simple_lstm_model.predict(x).shape)
-
+            simple_lstm_model = create_model()
+            # dt_string = now.strftime("%Y-%m-%d")
+            checkpoint_path = './Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' +'V' + str(ver + '/')
+            cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path+'checkpoint',
+                                                             save_weights_only=True,
+                                                             verbose=1)
+            cp_logger = tf.keras.callbacks.TensorBoard(log_dir='Logs',
+                                                    write_graph=True,
+                                                    histogram_freq=5)
+            
             simple_lstm_model.fit(train_univariate, epochs=EPOCHS,
                                   steps_per_epoch=EVALUATION_INTERVAL,
-                                  validation_data=val_univariate, validation_steps=50)
+                                  validation_data=val_univariate, validation_steps=50,
+                                  callbacks=[cp_callback, cp_logger])
+            ## Opening tensorboard
+            #  - on terminal type:
+            #   `tensorboard --logdir=logs`
+            #  - it will returm something like:
+            #   `TensorBoard 1.14.0a20190603 at http://what.local:6006/ (Press CTRL+C to quit)`
+            #  - open the browser that that url.
 
             score = simple_lstm_model.evaluate(x_val_uni, y_val_uni, verbose=1)
-
-            # dt_string = now.strftime("%Y-%m-%d")
-            simple_lstm_model.save('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' +'V' + ver)
-
+            save_model(simple_lstm_model, checkpoint_path)
+ 
 
         ## Prediction
         if mode_prediction:
-
-            if not simple_lstm_model:
+            checkpoint_path = './Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' +'V' + str(ver + '/')
+            try:
+                simple_lstm_model.summary()
+            except:
                 try:
-                    simple_lstm_model = tf.saved_model.load('./Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' + 'V' + str(ver))
+                    simple_lstm_model = load_model(checkpoint_path)
                 except:
-                    print("Loading unsuccessfully")
+                    print('Model could not be loaded. Exiting.')
+                    exit()
 
             last_result = np.reshape(
                 np.array(dft[Ball_to_predict].tail(8)),(8,1))
@@ -271,20 +288,16 @@ for Ball_to_predict in balls:
             sample_mean = dft[Ball_to_predict].mean()
             sample_std = dft[Ball_to_predict].std()
             last_result = (last_result - sample_mean) / sample_std
-            
-
             # uni_train_mean = uni_data[:TRAIN_SPLIT].mean()
             # uni_train_std = uni_data[:TRAIN_SPLIT].std()
             # uni_data = (uni_data - uni_train_mean) / uni_train_std
             # last_result = ((last_result-uni_train_mean)/uni_train_std)
-
             last_result = tf.convert_to_tensor([last_result,last_result], dtype=np.float64, dtype_hint=None, name=None)
 
             prediction = [prediction] + [simple_lstm_model.predict(last_result[:1]) * sample_std + sample_mean]
 
             print('Prediction of ball', Ball_to_predict, ':', simple_lstm_model.predict(last_result[:1]) * sample_std + sample_mean)
-
-
+            exit()
 
     if not univariate:
         print(df)
@@ -309,7 +322,6 @@ for Ball_to_predict in balls:
         past_history = 20
         future_target = 1
         STEP = 6
-        single_step_model = []
 
         tf.random.set_seed(13)
 
@@ -359,17 +371,10 @@ for Ball_to_predict in balls:
             # last_result = np.reshape(np.array(dft[features_considered].tail(STEP-2)),(8,6))
             last_result = np.array(dft[features_considered].tail(STEP-2))
             print('Last result', last_result)
-            # print('Min:',uni_data[:TRAIN_SPLIT].min(),'\nMax:',uni_data[:TRAIN_SPLIT].max())
             sample_mean = dft[Ball_to_predict].mean()
             sample_std = dft[Ball_to_predict].std()
             last_result = (last_result - sample_mean) / sample_std
             last_result = tf.convert_to_tensor([last_result,last_result], dtype=np.float64, dtype_hint=None, name=None)
-            # print(last_result)
-
-            # print('Prediction:', single_step_model.predict(x)[0])
-            # prediction = [prediction] + [single_step_model.predict(x)[-1] * sample_std + sample_mean]
-            # print(single_step_model.predict(x)* sample_std + sample_mean)
-            # print(len(single_step_model.predict(x)), 'total predictions.')
             prediction = [prediction] + [single_step_model.predict(last_result[:1]) * sample_std + sample_mean]
 
             print('Prediction of ball', Ball_to_predict, ':', single_step_model.predict(last_result[:1]) * sample_std + sample_mean)

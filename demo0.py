@@ -4,16 +4,22 @@
 
 from tkinter import *
 from tkinter.ttk import *
+from load_data import *
+from constants import *
 
-balls = ['1', '2', '3', '4', '5', '6', 'Bonus', 'Powerball']
-
-
+def last_result(tab):
+    df = load_data(file_name)
+    t = Text(tab, height=2, width=80)
+    t.grid(column=col,row=rows, columnspan=10, rowspan=2)
+    t.insert(END, df.tail(1))
+    lbl2A = Label(tab, text= 'Last draw was:')
+    lbl2A.grid(column=0, row=rows+1)
+    return df
 
 window = Tk()
 
 window.title("Lotto prediction LSNN")
-window.geometry('850x200')
-
+window.geometry('870x200')
 
 tab_control = Notebook(window)
 tab1 = Frame(tab_control)
@@ -22,38 +28,34 @@ tab3 = Frame(tab_control)
 tab_control.add(tab1, text='Predict')
 tab_control.add(tab2, text='Update')
 tab_control.add(tab3, text='Train')
-
-
-lbl1 = Label(tab1, text= 'label1')
-lbl1.grid(column=0, row=0)
-
-
-lbl2A = Label(tab2, text= 'Last draw was:')
-lbl2A.grid(column=0, row=0)
-
-lbl2B = Label(tab2, text= 'Enter the stuff')
-lbl2B.grid(column=0, row=1)
-# for i in range(1,9,1):
-    # print(i)
-lblb1 = Label(tab2, text= '1')
-lblb1.grid(column=0, row=2)
-
+tab_control.pack(expand=1, fill='both')
 
 
 col = 1
 rows = 3
 
+### TAB 1
+df = last_result(tab1)
+
+
+### TAB 2
+df = last_result(tab2)
+
+lbl2B = Label(tab2, text= 'Enter:')
+lbl2B.grid(column=0, row=rows+31)
+
+# lblb1 = Label(tab2, text= df.tail(1))
+# lblb1.grid(column=0, row=2)
 
 lblb1 = Label(tab2, text= 'Draw')
-lblb1.grid(column=col, row=rows)
-splb1 = Spinbox(tab2, from_=0, to=40, width=3)
-splb1.grid(column=col,row=rows+1)
+lblb1.grid(column=col, row=rows+30)
+splb1 = Spinbox(tab2, from_=0, to=40, width=4)
+splb1.grid(column=col,row=rows+31)
 
 lblb2 = Label(tab2, text= 'Date')
-lblb2.grid(column=col+1, row=rows)
-splb2 = Spinbox(tab2, from_=0, to=40, width=3)
-splb2 = Spinbox(tab2, from_=0, to=40, width=3)
-splb2.grid(column=col+1,row=rows+1)
+lblb2.grid(column=col+1, row=rows+30)
+splb2 = Spinbox(tab2, from_=0, to=40, width=10)
+splb2.grid(column=col+1,row=rows+31)
 
 
 b = []
@@ -61,53 +63,35 @@ j = 1
 for i in balls:
     j= j+1
     lblb3 = Label(tab2, text= i)
-    lblb3.grid(column=col+1+j, row=rows)
+    lblb3.grid(column=col+1+j, row=rows+30)
     temp = Spinbox(tab2, from_=0, to=40, width=3)
     b.append(temp)
 
 j = 1
 for i in b:
     j= j+1
-    i.grid(column=col+1+j,row=rows+1)
+    i.grid(column=col+1+j,row=rows+31)
 
-
-# B1 = Spinbox(tab2, from_=0, to=40, width=3)
-# B1.grid(column=col+1,row=rows)
-# B2 = Spinbox(tab2, from_=0, to=40, width=3)
-# B2.grid(column=col+2,row=rows)
-# B3 = Spinbox(tab2, from_=0, to=40, width=3)
-# B3.grid(column=col+3,row=rows)
-# B4 = Spinbox(tab2, from_=0, to=40, width=3)
-# B4.grid(column=col+4,row=rows)
-# B5 = Spinbox(tab2, from_=0, to=40, width=3)
-# B5.grid(column=col+5,row=rows)
-# B6 = Spinbox(tab2, from_=0, to=40, width=3)
-# B6.grid(column=col+6,row=rows)
-# B7 = Spinbox(tab2, from_=0, to=40, width=3)
-# B7.grid(column=col+7,row=rows)
-# B8 = Spinbox(tab2, from_=0, to=40, width=3)
-# B8.grid(column=col+8,row=rows)
-# B9 = Spinbox(tab2, from_=0, to=10, width=3)
-# B9.grid(column=col+9,row=rows)
-
-
-
-def clicked():
+def clicked_update():
+    ball_draw = [splb1.get(),splb2.get()]
     for i in b:
-        print(splb1.get(), splb2.get(), i.get())
-        # res = "Welcome to " + txt.get()
-        # lbl.configure(text= res)
+        ball_draw.append(i.get())
 
-btn = Button(tab2, text="Update", command=clicked)
-btn.grid(column=12, row=4)
-
-
-tab_control.pack(expand=1, fill='both')
+    df = update(ball_draw)
+    print(df.tail(2))
+    save(df)
 
 
-lbl3 = Label(tab3, text= 'label2')
+
+btn = Button(tab2, text="Update", command=clicked_update)
+btn.grid(column=12, row=34)
+
+
+lbl3 = Label(tab3, text= 'How many features?')
 lbl3.grid(column=0, row=0)
 
+lbl3 = Label(tab3, text= 'Is the data sorted?')
+lbl3.grid(column=1, row=0)
 # lbl = Label(window, text="Lotto", font=("Arial Bold", 50))
 # lbl.grid(column=0, row=0)
 #
@@ -138,12 +122,15 @@ combo2['values']= ('Unsorted', 'Sorted')
 combo2.current(1) #set the selected item
 combo2.grid(column=1, row=5)
 
-def clicked():
-    res = "Welcome to " + txt.get()
-    lbl.configure(text= res)
 
-btn = Button(tab3, text="Train", command=clicked)
-btn.grid(column=0, row=6)
+def clicked_train():
+    print('Nothing happens here.')
+
+    # res = "Welcome to " + txt.get()
+    # lbl.configure(text= res)
+
+btn = Button(tab3, text="Train", command=clicked_train)
+btn.grid(column=2, row=5)
 #
 # chk_state = BooleanVar()
 # chk_state.set(True) #set check state

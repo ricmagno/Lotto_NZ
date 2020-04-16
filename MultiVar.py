@@ -382,7 +382,7 @@ if mode_prediction:
     print('=================================================')
     j = 0
     for i in balls:
-        print('\t\t Ball ', i, ': ', int(round(float(prediction[j]),0)), '[', round(float(prediction[j]),2), ']')
+        print('\t\t 🎱  Ball ', i, ': ', int(round(float(prediction[j]),0)), '[', round(float(prediction[j]),2), ']')
         j = j+1
     print('\n=================================================')
 exit()

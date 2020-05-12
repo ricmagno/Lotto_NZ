@@ -34,7 +34,7 @@ univariate = False
 univariate_past_history = 30
 univariate_future_target = 0
 
-split_percent = .8
+split_percent = .7
 BATCH_SIZE = 256
 BUFFER_SIZE = 300
 EVALUATION_INTERVAL = 300

@@ -28,7 +28,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 mode_training = True
 mode_prediction = False
-ver = '007'
+ver = '008'
 univariate = False
 
 univariate_past_history = 30
@@ -247,9 +247,15 @@ for Ball_to_predict in balls:
             val_univariate = val_univariate.batch(BATCH_SIZE).repeat()
 
             # simple_lstm_model = create_model(past_history, x_train_uni.shape[-2:])
-            simple_lstm_model = create_model(past_history, x_train_uni.shape)
             # dt_string = now.strftime("%Y-%m-%d")
             checkpoint_path = './Models/' + 'Ball_'+ Ball_to_predict + '_' + sorted_data + '_' + model_variables_name + '_' +'V' + str(ver + '/')
+            # FIX: LOAD MODEL Checkpoint
+            # try: 
+                # simple_lstm_model = load_model(checkpoint_path)
+                # print('Loading mode checkpoint')
+            # except:
+                # simple_lstm_model = create_model(past_history, x_train_uni.shape)
+            simple_lstm_model = create_model(past_history, x_train_uni.shape)
 
             cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path+'checkpoint',
                                                              save_weights_only=True,

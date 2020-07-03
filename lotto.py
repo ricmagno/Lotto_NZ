@@ -35,10 +35,10 @@ except:
 game = 'lotto'
 mode_training = True
 mode_prediction = False
-ver = '001'
+ver = '002'
 univariate = False
 
-univariate_past_history = 30
+univariate_past_history = 80
 univariate_future_target = 0
 
 split_percent = .7
@@ -49,9 +49,9 @@ EPOCHS = 100
 ACCURACY_THRESHOLD = .95
 LOSS_THRESHOLD = 1.1
 
-past_history = 30
+past_history = 80
 future_target = 0
-STEP = 30
+STEP = 40
 
 # Add this feature as parameter
 sort_balls = False
@@ -189,7 +189,7 @@ def scale_minmax(data, _min=1, _max=40):
 def create_model(out_space,input_def):
     model = tf.keras.models.Sequential([
         tf.keras.layers.LSTM(out_space, input_shape=input_def[1:]),
-        tf.keras.layers.Dense(32),
+        tf.keras.layers.Dense(40),
         tf.keras.layers.Dense(1)])
     model.compile(optimizer='adam', loss='mae')
     model.summary()
